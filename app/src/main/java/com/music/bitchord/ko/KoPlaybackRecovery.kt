@@ -590,7 +590,7 @@ internal fun PlaybackService.koSwitchToAlternateOrSkip(
                     consecutiveVerdictSkips = consecutiveVerdictSkips,
                 )
                 if (decision != UnplayableRecoveryAction.SWAP_ALTERNATE || alternate == null) {
-                    val skipReason = verdictSkipReason(reason)
+                    val skipReason = verdictSkipReason(mediaId, reason)
                     if (skipReason == null) {
                         TrackLog.w(
                             "BitChord",

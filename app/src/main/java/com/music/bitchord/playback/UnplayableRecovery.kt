@@ -60,4 +60,18 @@ internal object UnplayableRecovery {
     /** Whether one more definitive skip is still progress rather than a loop. */
     fun allowsVerdictSkip(consecutiveVerdictSkips: Int): Boolean =
         consecutiveVerdictSkips < MAX_CONSECUTIVE_VERDICT_SKIPS
+
+    /**
+     * Whether refusing [mediaId] now would loop rather than make progress.
+     *
+     * A different row is progress even when every row on the queue is
+     * unavailable, so it restarts the run. Only the same id handed back after
+     * every skip — a duplicated row or repeat-one — is the loop the cap
+     * exists for.
+     */
+    fun isVerdictLoop(
+        previousMediaId: String?,
+        mediaId: String,
+        consecutiveVerdictSkips: Int,
+    ): Boolean = previousMediaId == mediaId && !allowsVerdictSkip(consecutiveVerdictSkips)
 }

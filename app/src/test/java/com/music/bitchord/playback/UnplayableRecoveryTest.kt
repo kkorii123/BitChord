@@ -81,6 +81,36 @@ class UnplayableRecoveryTest {
     }
 
     @Test
+    fun `many different unplayable rows are not a loop`() {
+        var previous: String? = null
+        var run = 0
+        repeat(UnplayableRecovery.MAX_CONSECUTIVE_VERDICT_SKIPS * 3) { index ->
+            val id = "row-$index"
+            assertFalse(UnplayableRecovery.isVerdictLoop(previous, id, run))
+            run = if (previous == id) run + 1 else 1
+            previous = id
+        }
+    }
+
+    @Test
+    fun `the same id is a loop once the cap is reached`() {
+        val id = "same-row"
+        var run = 0
+        repeat(UnplayableRecovery.MAX_CONSECUTIVE_VERDICT_SKIPS) {
+            assertFalse(UnplayableRecovery.isVerdictLoop(id, id, run))
+            run++
+        }
+        assertTrue(UnplayableRecovery.isVerdictLoop(id, id, run))
+        assertFalse(
+            UnplayableRecovery.isVerdictLoop(
+                "previous-row",
+                id,
+                UnplayableRecovery.MAX_CONSECUTIVE_VERDICT_SKIPS,
+            ),
+        )
+    }
+
+    @Test
     fun `the definitive skip path itself stops at the verdict cap`() {
         assertEquals(
             UnplayableRecoveryAction.SKIP_NEXT,

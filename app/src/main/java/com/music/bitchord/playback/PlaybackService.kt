@@ -921,6 +921,14 @@ class PlaybackService : MediaLibraryService() {
     internal var consecutiveVerdictSkips = 0
 
     /**
+     * The id of the row whose definitive refusal [consecutiveVerdictSkips]
+     * counts. A different row restarts the run even when it too is
+     * unplayable, so a long run of region-locked rows still walks the queue;
+     * only the same id coming back is the loop the cap exists for.
+     */
+    private var lastVerdictSkipMediaId: String? = null
+
+    /**
      * The track whose playback failure has already been shown to the listener.
      *
      * One failed track raises its error several times on the way to being
@@ -1346,6 +1354,7 @@ class PlaybackService : MediaLibraryService() {
                 audibleMediaId = exoPlayer.currentMediaItem?.mediaId
                 consecutiveErrorSkips = 0
                 consecutiveVerdictSkips = 0
+                lastVerdictSkipMediaId = null
                 // Sound is out, so the rows after this one can be prepared
                 // without competing with the current row's own lookup.
                 scheduleUpcomingSongVersions(exoPlayer)
@@ -5042,6 +5051,7 @@ class PlaybackService : MediaLibraryService() {
             audibleMediaId = mediaItem?.mediaId
             consecutiveErrorSkips = 0
             consecutiveVerdictSkips = 0
+            lastVerdictSkipMediaId = null
             // The crossfaded track never reports playing, so its look-ahead
             // is scheduled here instead.
             scheduleUpcomingSongVersions(exoPlayer)
@@ -5661,7 +5671,7 @@ class PlaybackService : MediaLibraryService() {
                 // the outside that is indistinguishable from a hung app — which
                 // is what the report describes and what "it was stuck on my
                 // phone too" means. Moving on is the only honest answer.
-                val reason = skipReason(verdict, error, neverStarted, attempts)
+                val reason = skipReason(mediaId, verdict, error, neverStarted, attempts)
                 if (reason != null) {
                     withContext(Dispatchers.Main) { skipPastUnplayable(mediaId, reason) }
                 } else {
@@ -6073,12 +6083,13 @@ class PlaybackService : MediaLibraryService() {
      * calls too rather than skipping around it.
      */
     private fun skipReason(
+        mediaId: String,
         verdict: String?,
         error: PlaybackException,
         neverStarted: Boolean,
         attempts: Int,
     ): String? {
-        if (verdict != null) return verdictSkipReason(verdict)
+        if (verdict != null) return verdictSkipReason(mediaId, verdict)
         if (isBotChallenge(error)) {
             TrackLog.w(
                 "BitChord",
@@ -6107,8 +6118,14 @@ class PlaybackService : MediaLibraryService() {
      *   been handed back [UnplayableRecovery.MAX_CONSECUTIVE_VERDICT_SKIPS]
      *   times in a row and the queue should stay where it is.
      */
-    internal fun verdictSkipReason(reason: String): String? {
-        if (!UnplayableRecovery.allowsVerdictSkip(consecutiveVerdictSkips)) {
+    internal fun verdictSkipReason(mediaId: String, reason: String): String? {
+        val sameRow = lastVerdictSkipMediaId == mediaId
+        if (UnplayableRecovery.isVerdictLoop(
+                lastVerdictSkipMediaId,
+                mediaId,
+                consecutiveVerdictSkips,
+            )
+        ) {
             TrackLog.w(
                 "BitChord",
                 "${UnplayableRecovery.MAX_CONSECUTIVE_VERDICT_SKIPS} unplayable rows in a row; " +
@@ -6116,7 +6133,8 @@ class PlaybackService : MediaLibraryService() {
             )
             return null
         }
-        consecutiveVerdictSkips++
+        consecutiveVerdictSkips = if (sameRow) consecutiveVerdictSkips + 1 else 1
+        lastVerdictSkipMediaId = mediaId
         return reason
     }
 
