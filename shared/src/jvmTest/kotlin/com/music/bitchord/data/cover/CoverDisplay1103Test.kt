@@ -135,6 +135,20 @@ class CoverDisplay1103Test {
     }
 
     @Test
+    fun `a Korean nested artist bracket reads like Tomboy`() {
+        val shown = StoredSongDisplay.clean(song("나는 아픈 건 딱 질색이니까((G)I-DLE)", "오화요"))
+        assertEquals("나는 아픈 건 딱 질색이니까", shown.title)
+        assertEquals("(G)I-DLE · 오화요 커버", shown.artist)
+    }
+
+    @Test
+    fun `a single Korean artist bracket is not a nested cover`() {
+        val shown = StoredSongDisplay.clean(song("사건의 지평선(윤하)", "오화요"))
+        assertEquals("사건의 지평선(윤하)", shown.title)
+        assertEquals("오화요", shown.artist)
+    }
+
+    @Test
     fun `a catalogue-matched cover still shows its singer`() {
         CoverTitles.knownSingers = { setOf("오화요") }
         val stored = song(
