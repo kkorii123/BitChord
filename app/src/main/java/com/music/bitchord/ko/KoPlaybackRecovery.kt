@@ -419,17 +419,18 @@ internal fun PlaybackService.koSwitchToAlternateOrSkip(
                         alternate = if (allowAlternateRecording) {
                             withContext(Dispatchers.IO) {
                                 // The resolver has already ruled the id out,
-                                // so the cheapest rescue is a song version
-                                // this run already found — including one that
-                                // landed after the pre-audio lookup timed
-                                // out. Only when there is none is a search
-                                // spent, and that search is one bounded
-                                // song-version lookup rather than the old
+                                // so the cheapest rescue is another recording
+                                // this run already found — including a song
+                                // version that landed after the pre-audio
+                                // lookup timed out, or another ATV of a row
+                                // that is already a song. Only when there is
+                                // none is a search spent, and that search is
+                                // one bounded lookup rather than the old
                                 // multi-query alternate walk.
                                 val downloaded = song.localUri != null ||
                                     Downloads.isDownloaded(song.videoId)
                                 val cached = YtMusicRepository.cachedSongVersionFor(song)
-                                val fromCache = UnplayableAlternate.cachedSongVersion(
+                                val fromCache = UnplayableAlternate.cachedAlternate(
                                     row = song,
                                     cached = cached,
                                     downloaded = downloaded,
@@ -440,7 +441,7 @@ internal fun PlaybackService.koSwitchToAlternateOrSkip(
                                 // A copy already in hand is used even when
                                 // the budget is spent: it needs no request
                                 // and can make a sound immediately.
-                                fromCache ?: if (!UnplayableAlternate.allowsSongVersion(
+                                fromCache ?: if (!UnplayableAlternate.allowsAlternateRecording(
                                         song,
                                         downloaded,
                                     )
@@ -452,17 +453,34 @@ internal fun PlaybackService.koSwitchToAlternateOrSkip(
                                     // spending. A late answer is discarded
                                     // by the rescue clock.
                                     rescue.runStep(BlockedStartStep.ALTERNATE) {
-                                        YtMusicRepository.songVersion(song, beforeAudio = true)
-                                            ?.let { found ->
-                                                UnplayableAlternate.cachedSongVersion(
-                                                    row = song,
-                                                    cached = found,
-                                                    downloaded = downloaded,
-                                                    unplayable = StreamResolver.isUnplayable(
-                                                        found.videoId,
-                                                    ),
-                                                )
-                                            }
+                                        val version = if (SongVersionPolicy.wantsSongVersion(
+                                                song.isVideo,
+                                                song.typeUnknown,
+                                            )
+                                        ) {
+                                            YtMusicRepository.songVersion(song, beforeAudio = true)
+                                                ?.let { found ->
+                                                    UnplayableAlternate.cachedAlternate(
+                                                        row = song,
+                                                        cached = found,
+                                                        downloaded = downloaded,
+                                                        unplayable = StreamResolver.isUnplayable(
+                                                            found.videoId,
+                                                        ),
+                                                    )
+                                                }
+                                        } else {
+                                            null
+                                        }
+                                        // A row that is already a song has no
+                                        // version to switch to; its rescue is
+                                        // another ATV upload of the same
+                                        // recording, which this search keeps
+                                        // non-MV on its own.
+                                        version ?: YtMusicRepository.findAlternateRecording(
+                                            song,
+                                            setOf(song.videoId),
+                                        )
                                     }
                                 }
                             }

@@ -17,6 +17,24 @@ import com.music.bitchord.ko.videoRadio
  */
 object UnplayableAlternate {
     /**
+     * Whether [row] may be replaced by another upload of the same recording.
+     *
+     * A video-radio row is the upload the listener asked to keep, a cover is
+     * the performance they chose, and a downloaded row is the file they own —
+     * none of them becomes a different recording to escape a failure.
+     *
+     * Unlike [allowsSongVersion] this also covers a row that is already a
+     * song: a region refusal on one catalogue release is answered by another
+     * upload of it (the other ATV the rescue search finds), not by skipping
+     * the row.
+     */
+    fun allowsAlternateRecording(row: Song, downloaded: Boolean): Boolean =
+        !row.videoRadio &&
+            row.localUri == null &&
+            !downloaded &&
+            SongVersionPolicy.mayInstallSongVersion(row)
+
+    /**
      * Whether [row] may be replaced by a catalogue song version at all.
      *
      * A video-radio row is the upload the listener asked to keep, a cover is
@@ -24,11 +42,8 @@ object UnplayableAlternate {
      * none of them becomes a different recording to escape a failure.
      */
     fun allowsSongVersion(row: Song, downloaded: Boolean): Boolean =
-        !row.videoRadio &&
-            row.localUri == null &&
-            !downloaded &&
-            SongVersionPolicy.wantsSongVersion(row.isVideo, row.typeUnknown) &&
-            SongVersionPolicy.mayInstallSongVersion(row)
+        allowsAlternateRecording(row, downloaded) &&
+            SongVersionPolicy.wantsSongVersion(row.isVideo, row.typeUnknown)
 
     /**
      * The already-resolved song version to swap in for [row], or null when
@@ -44,8 +59,39 @@ object UnplayableAlternate {
         cached: Song?,
         downloaded: Boolean,
         unplayable: Boolean,
+    ): Song? = cachedRecording(
+        row = row,
+        cached = cached,
+        unplayable = unplayable,
+        allowed = allowsSongVersion(row, downloaded),
+    )
+
+    /**
+     * The already-resolved other upload to swap in for [row], or null when
+     * there is none to use.
+     *
+     * Same rules as [cachedSongVersion], but a row that is already a song is
+     * eligible too: its rescue is another upload of the same recording.
+     */
+    fun cachedAlternate(
+        row: Song,
+        cached: Song?,
+        downloaded: Boolean,
+        unplayable: Boolean,
+    ): Song? = cachedRecording(
+        row = row,
+        cached = cached,
+        unplayable = unplayable,
+        allowed = allowsAlternateRecording(row, downloaded),
+    )
+
+    private fun cachedRecording(
+        row: Song,
+        cached: Song?,
+        unplayable: Boolean,
+        allowed: Boolean,
     ): Song? {
-        if (!allowsSongVersion(row, downloaded)) return null
+        if (!allowed) return null
         val candidate = cached ?: return null
         if (candidate.videoId == row.videoId) return null
         if (candidate.isVideo) return null
