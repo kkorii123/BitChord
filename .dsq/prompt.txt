@@ -1,0 +1,8 @@
+Kotlin Android app (task/u19-tg). Use grep/Select-String, not rg. Do not touch .github/workflows.
+
+CI (shared jvmTest, 1773 tests) has exactly one failure:
+  CoverDisplay1103Test > Tomboy by 오화요 reads as the user specified FAILED
+  org.junit.ComparisonFailure at CoverDisplay1103Test.kt:41   (the TITLE assertion)
+The test (user's decisive spec): StoredSongDisplay.clean(Song(title='Tomboy((G)I-DLE)', artist='오화요', isVideo=true)) must give title 'Tomboy' and artist '(G)I-DLE · 오화요 커버'. Do NOT change the test's expectations.
+Find which path handles this row (StoredSongDisplay.clean -> YouTubeDisplayCleaner.clean -> CoverTitles.read(song) -> readRaw: an earlier reader may claim the title before readNestedArtistBracket, or normalize()/nestedTrailingGroup may not see the double bracket, or the row falls through to the generic cleaner) and fix it so this passes while every other test in shared jvmTest still passes (run the whole CoverTitles*/YouTubeDisplayCleaner*/StoredSongDisplay*/CoverDisplay* tests and the CI 'Lyrics tests' command from ko-wip-check.yml). Also add the same shape with a Korean title, e.g. '사건의 지평선(윤하)' is NOT nested (single bracket) and must stay as it is today; '나는 아픈 건 딱 질색이니까((G)I-DLE)' nested must read like Tomboy.
+Summary of at most 8 lines: cause (file:line), fix, tests run and their result, REMOVED-LINES AUDIT. Follow AGENTS.md (ponytail) rules.
