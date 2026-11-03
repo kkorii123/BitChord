@@ -1,12 +1,2 @@
-# Default smoke list: fixed 10-song set (11-02 user: 10 songs, 1.9 only).
-# 3 MV (song-version swap), 2 HQ (upgrade), 5 covers from the sync set.
--RJSbO8UZVY	mv
-QYh6mYIJG2Y	mv
-ekzHIouo8Q4	mv
-TuzfXgUpboA	hq
-cCfPDrRQp9k	hq
-v59g4HRNIkc	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc
-xK5bBgpt4XA	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc
-7PgA6kyqVTc	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc
-vRjfYdwM5L4	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc
-5nxb792c-b4	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc
+# user's 11-03 history, Ohwayo covers
+LO61-xO9jkw	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc sUq43n_huXE	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc 0aLisWvLk-o	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc BeoL0Ngalnc	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc 2ckYLR_jtnw	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc Q9Ri1u0DQdw	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc ZjZRLy3A3QA	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc Mecb5hrcaLA	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc CTSo4Grujos	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc RgB8yfUv9KI	cover	PL-ODED49YdZByxxHBLaIIOOePlhj8nWcc
