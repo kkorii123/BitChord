@@ -1573,10 +1573,12 @@ class CrossfadeController(
         // that lead rather than immediately. Otherwise a cold stream that is
         // merely slower than three seconds would be dropped with twelve seconds
         // of the lead still to run.
-        armDeadline = ko.armStartedAt + AutomixWorkPolicy.STANDBY_LEAD_MS +
-            CrossfadeArmPolicy.armTimeoutMs(rampSteps * beatMs)
+        armDeadline = CrossfadeArmPolicy.armDeadlineMs(
+            ko.armStartedAt,
+            AutomixWorkPolicy.STANDBY_LEAD_MS,
+            rampSteps * beatMs,
+        )
         planInFlight = plan
-        armDeadline = SystemClock.elapsedRealtime() + CrossfadeArmPolicy.armTimeoutMs(rampSteps * beatMs)
         handedOff = false
         outgoing = out
         incoming = into

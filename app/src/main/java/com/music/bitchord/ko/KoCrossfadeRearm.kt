@@ -46,7 +46,10 @@ internal fun CrossfadeController.koRearmIncoming(
     into.prepare()
     ko.armStartedAt = SystemClock.elapsedRealtime()
     ko.armPausedAt = 0L
-    armDeadline = ko.armStartedAt + AutomixWorkPolicy.STANDBY_LEAD_MS +
-        CrossfadeArmPolicy.armTimeoutMs(rampSteps * rampStepMs)
+    armDeadline = CrossfadeArmPolicy.armDeadlineMs(
+        ko.armStartedAt,
+        AutomixWorkPolicy.STANDBY_LEAD_MS,
+        rampSteps * rampStepMs,
+    )
     return true
 }

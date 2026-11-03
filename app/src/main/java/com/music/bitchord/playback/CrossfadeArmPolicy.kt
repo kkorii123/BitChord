@@ -64,6 +64,16 @@ internal object CrossfadeArmPolicy {
     fun armTimeoutMs(rampMs: Long = 0L): Long =
         (ARM_TIMEOUT_MS + rampMs.coerceAtLeast(0L)).coerceAtLeast(1L)
 
+    /**
+     * The instant an armed standby is dropped if it never became ready.
+     *
+     * The grace is counted from the transition, not from arming: the standby
+     * is loaded a whole [leadMs] early, so charging the grace from the arm
+     * start would drop a cold stream while most of its lead is still to run.
+     */
+    fun armDeadlineMs(startedAtMs: Long, leadMs: Long, rampMs: Long = 0L): Long =
+        startedAtMs + leadMs.coerceAtLeast(0L) + armTimeoutMs(rampMs)
+
     /** The arming loop's normal step while the outgoing track can still reach the fade. */
     const val ARM_STEP_MS = 40L
 
