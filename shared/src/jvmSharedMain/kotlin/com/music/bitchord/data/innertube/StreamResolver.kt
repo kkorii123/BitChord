@@ -413,6 +413,18 @@ object StreamResolver {
     @Volatile
     private var lastBotRefreshAtMs = 0L
 
+    /**
+     * When the network last answered with a bot challenge, whether or not that
+     * was the one refusals [lastBotRefreshAtMs] refreshed for.
+     *
+     * The optional cover loop is skipped while this is fresh: its NewPipe walk
+     * is an anonymous watch-page fetch, the exact request the challenge refuses,
+     * so every track would pay for another refusal to learn what one already
+     * said. Playback is not skipped — its clients carry the visitor identity.
+     */
+    @Volatile
+    private var lastBotChallengeAtMs = 0L
+
     private const val BOT_REFRESH_COOLDOWN_MS = 10 * 60 * 1000L
 
     private const val BOT_CHALLENGE_REASON = "YouTube가 이 네트워크에서 봇 확인을 요구합니다"
@@ -428,6 +440,7 @@ object StreamResolver {
     private fun noteBotChallenge(videoId: String) {
         val now = System.currentTimeMillis()
         val refresh = synchronized(this) {
+            lastBotChallengeAtMs = now
             if (now - lastBotRefreshAtMs >= BOT_REFRESH_COOLDOWN_MS) {
                 lastBotRefreshAtMs = now
                 true
@@ -453,6 +466,28 @@ object StreamResolver {
             }
         }
     }
+
+    /**
+     * Whether a challenge this recent still stands the optional cover loop
+     * down. [BOT_REFRESH_COOLDOWN_MS] is the same window the visitor refresh
+     * uses: long enough that the refusal is not paid for once per track, short
+     * enough that a listener who changes network does not have to restart.
+     */
+    private fun botChallengeStandDown(nowMs: Long): Boolean =
+        lastBotChallengeAtMs != 0L &&
+            nowMs - lastBotChallengeAtMs < BOT_REFRESH_COOLDOWN_MS
+
+    internal fun noteBotChallengeForTest(nowMs: Long) {
+        lastBotChallengeAtMs = nowMs
+    }
+
+    internal fun resetBotChallengeForTest() {
+        lastBotChallengeAtMs = 0L
+        lastBotRefreshAtMs = 0L
+    }
+
+    internal fun botChallengeStandDownForTest(nowMs: Long): Boolean =
+        botChallengeStandDown(nowMs)
 
     fun unplayableReason(videoId: String): String? {
         val entry = unplayable[videoId] ?: return null
@@ -2821,6 +2856,9 @@ object StreamResolver {
     suspend fun videoLoop(videoId: String, maxHeight: Int = 480): VideoLoop? {
         val now = System.currentTimeMillis()
         videoLoops[videoId]?.let { if (it.expiresAtMs - now > LOOP_MARGIN_MS) return it }
+        // A recent bot challenge already refused this exact anonymous fetch;
+        // the still cover is the answer until the window passes.
+        if (botChallengeStandDown(now)) return null
         // The gate is shared with playback's own extraction, which a listener
         // may be waiting on: a cover's loop only takes it when it is free,
         // never queues in front of a track trying to start.
@@ -2858,6 +2896,9 @@ object StreamResolver {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            // The challenge belongs to the network, not this cover; recording
+            // it stops the next track's loop from paying for the same refusal.
+            if (e.isSignInConfirmNotBot()) noteBotChallenge(videoId)
             TrackLog.w(TAG, "no video loop for $videoId: ${e.javaClass.simpleName}: ${e.message}")
             null
         } catch (e: LinkageError) {
