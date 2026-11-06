@@ -155,6 +155,7 @@ sleep 20
 
 # Stream logcat for the whole run: the default ring buffer wraps during a list
 # this long, and a final dump would lose the early `track-summary`/`play:` lines.
+sleep 6000
 adb logcat -c || true
 : > "$OUT/smoke-logcat.txt"
 : > "$OUT/smoke-playback.txt"
